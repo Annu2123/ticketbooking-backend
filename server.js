@@ -1,0 +1,38 @@
+require('dotenv').config()
+const express=require('express')
+const {checkSchema}=require('express-validator')
+const port=3001
+const cors=require('cors')
+const app=express()
+app.use(express.json())
+app.use(cors())
+const configDb=require('./config/db')
+configDb()
+const {authenticateUser, authorizeUser}=require("./app/middlewares/auth")
+const usersCntrl=require('./app/controllers/user-controller')
+const moviesCntrl=require("./app/controllers/movies-controller")
+const showtimeCntrl=require("./app/controllers/showTime-controller")
+const bookingCntrl=require("./app/controllers/booking-controller")
+
+const {userRegisterValidation, userLogginSchema} =require('./app/validations/users-validation')
+const {bookingValidation}=require("./app/validations/booking-validation")
+const {showtimeValidation}=require('./app/validations/showtime-validation')
+const {moviesValidation}=require('./app/validations/movies-validation')
+
+app.post('/api/user/register',checkSchema(userRegisterValidation),usersCntrl.register)
+app.post("/api/user/login",checkSchema(userLogginSchema),usersCntrl.login)
+
+app.post("/api/movie",authenticateUser,authorizeUser(["admin"]),checkSchema(moviesValidation),moviesCntrl.create)
+app.get("/api/movie/list",moviesCntrl.list)
+app.post("/api/showtime",checkSchema(showtimeValidation),showtimeCntrl.create)
+app.get('/api/showtime/:id',showtimeCntrl.getShowtimes)
+
+app.post("/api/booking/create",authenticateUser,authorizeUser(["customer"]),checkSchema(bookingValidation),bookingCntrl.create)
+app.put("/api/booking/update/:id",authenticateUser,authorizeUser(["customer"]),bookingCntrl.update)
+app.delete("/api/booking/delete/:id",authenticateUser,authorizeUser(["customer"]),bookingCntrl.delete)
+app.get("/api/booking",authenticateUser,authorizeUser(["customer","admin"]),bookingCntrl.list)
+app.get("/api/bookings/all",bookingCntrl.listAll)
+app.get("/api/booking/find/:id",showtimeCntrl.findshow)
+app.listen(port,()=>{
+    console.log("server is running in " ,port )
+})
